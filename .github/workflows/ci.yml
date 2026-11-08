@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: # permite reexecutar o pipeline manualmente pela aba Actions
 
 jobs:
   quality:
