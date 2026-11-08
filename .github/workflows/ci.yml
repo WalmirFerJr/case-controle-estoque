@@ -11,8 +11,8 @@ jobs:
     name: Lint, tipos e arquitetura
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -43,8 +43,8 @@ jobs:
     env:
       STOCK_TEST_DATABASE_URL: postgresql+psycopg://stock:stock@localhost:5432/stock_test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -55,5 +55,5 @@ jobs:
     name: Build da imagem
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -t stock-control:ci .
