@@ -52,7 +52,7 @@ class _Response(BaseModel):
 
 
 class ProductStockResponse(_Response):
-    sku: str = Field(description="Identificador do produto", examples=["NOTE-15"])
+    sku: str = Field(description="SKU: código do produto no estoque", examples=["NOTE-15"])
     total: int = Field(description="Unidades fisicamente em estoque", examples=[10])
     available: int = Field(
         description="Livres para saída, reserva ou bloqueio: total - reservado - bloqueado",

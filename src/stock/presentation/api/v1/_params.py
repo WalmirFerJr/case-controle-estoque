@@ -12,8 +12,9 @@ SkuPath = Annotated[
     str,
     Path(
         description=(
-            "Identificador do produto (SKU): de 1 a 64 caracteres entre letras, dígitos, "
-            "`.`, `_` e `-`, começando por letra ou dígito. Diferencia maiúsculas de minúsculas."
+            "SKU (Stock Keeping Unit): código que identifica o produto no estoque, não o nome. "
+            "De 1 a 64 caracteres entre letras, dígitos, `.`, `_` e `-`, começando por letra "
+            "ou dígito. Diferencia maiúsculas de minúsculas."
         ),
         openapi_examples={"notebook": {"summary": "Exemplo de SKU", "value": "NOTE-15"}},
     ),
