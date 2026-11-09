@@ -28,7 +28,7 @@ domínio/aplicação não importam frameworks; HTTP e persistência não se conh
 O enunciado valoriza simplicidade. A estrutura foi mantida enxuta: sem container de DI,
 sem CQRS, sem event bus, sem repositório genérico. O custo extra é basicamente o mapper
 ORM ↔ entidade (`infrastructure/persistence/mappers.py`, cerca de 70 linhas), e em troca:
-- 68 testes de domínio e de casos de uso rodam em menos de 1s, sem Docker;
+- 71 testes de domínio e de casos de uso rodam em menos de 1s, sem Docker;
 - a regra é provada por property-based testing sem banco;
 - um requisito novo (ex.: expiração de reserva) vira um caso de uso novo, sem tocar nos existentes.
 

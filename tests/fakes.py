@@ -38,6 +38,10 @@ class InMemoryProductRepository:
     def save(self, product: Product) -> None:
         self._store.products[product.sku] = deepcopy(product)
 
+    def list(self, *, limit: int, offset: int) -> Sequence[Product]:
+        ordered = sorted(self._store.products.values(), key=lambda p: p.sku.value)
+        return deepcopy(ordered[offset : offset + limit])
+
 
 class InMemoryHoldRepository:
     def __init__(self, store: InMemoryStore) -> None:

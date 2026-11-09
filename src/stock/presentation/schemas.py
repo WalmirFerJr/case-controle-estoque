@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
+from stock.domain.entities import HoldStatus, HoldType, MovementType
 from stock.domain.entities.hold import REASON_MAX_LENGTH, REFERENCE_MAX_LENGTH
 from stock.domain.value_objects import MAX_OPERATION_QUANTITY
 
@@ -51,35 +52,38 @@ class _Response(BaseModel):
 
 
 class ProductStockResponse(_Response):
-    sku: str
-    total: int
-    available: int
-    reserved: int
-    blocked: int
+    sku: str = Field(description="Identificador do produto", examples=["NOTE-15"])
+    total: int = Field(description="Unidades fisicamente em estoque", examples=[10])
+    available: int = Field(
+        description="Livres para saída, reserva ou bloqueio: total - reservado - bloqueado",
+        examples=[5],
+    )
+    reserved: int = Field(description="Soma das reservas ativas", examples=[3])
+    blocked: int = Field(description="Soma dos bloqueios ativos", examples=[2])
 
 
 class HoldResponse(_Response):
-    id: UUID
+    id: UUID = Field(description="Use em /holds/{hold_id} para consultar, liberar ou consumir")
     sku: str
-    type: str
+    type: HoldType = Field(description="RESERVATION (reserva) ou BLOCK (bloqueio)")
     quantity: int
-    reference: str
-    reason: str | None
-    status: str
+    reference: str = Field(description="Solicitação/pedido de origem")
+    reason: str | None = Field(description="Motivo do bloqueio (opcional)")
+    status: HoldStatus = Field(description="ACTIVE até ser liberado (RELEASED) ou consumido")
     created_at: datetime
-    closed_at: datetime | None
+    closed_at: datetime | None = Field(description="Preenchido quando o hold deixa de ser ACTIVE")
 
 
 class ProductDetailsResponse(ProductStockResponse):
-    active_holds: list[HoldResponse]
+    active_holds: list[HoldResponse] = Field(description="Reservas e bloqueios ainda ativos")
 
 
 class MovementResponse(_Response):
     id: UUID
     sku: str
-    type: str
+    type: MovementType
     quantity: int
-    hold_id: UUID | None
+    hold_id: UUID | None = Field(description="Hold que originou o movimento, se houver")
     occurred_at: datetime
 
 

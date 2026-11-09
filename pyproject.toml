@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "stock-control"
-version = "1.0.0"
+version = "1.1.0"
 description = "Controle de estoque com reservas e bloqueios — case prático de Engenharia de Software"
 readme = "README.md"
 requires-python = ">=3.12"

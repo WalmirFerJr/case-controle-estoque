@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Response, status
 
 from stock.application.dtos import BlockStockCommand, ReserveStockCommand, StockQuantityCommand
 from stock.application.use_cases import (
     BlockStock,
     GetProductStock,
     ListMovements,
+    ListProducts,
     RegisterEntry,
     RegisterExit,
     ReserveStock,
 )
+from stock.presentation.api.v1._params import DEFAULT_PAGE_SIZE, Limit, Offset, SkuPath
 from stock.presentation.api.v1._responses import CONFLICT, INVALID, NOT_FOUND
 from stock.presentation.dependencies import ClockDep, UowDep
 from stock.presentation.schemas import (
@@ -26,6 +28,23 @@ router = APIRouter(prefix="/products", tags=["Produtos"])
 HOLD_LOCATION = "/api/v1/holds/{hold_id}"
 
 
+@router.get(
+    "",
+    response_model=list[ProductStockResponse],
+    summary="Listar produtos e saldos",
+    description=(
+        "Situação de todos os produtos já cadastrados (total, disponível, reservado e "
+        "bloqueado), em ordem de SKU. Um produto passa a existir na sua primeira entrada."
+    ),
+    responses={**INVALID},
+)
+def list_products(
+    uow: UowDep, limit: Limit = DEFAULT_PAGE_SIZE, offset: Offset = 0
+) -> list[ProductStockResponse]:
+    products = ListProducts(uow).execute(limit=limit, offset=offset)
+    return [ProductStockResponse.model_validate(view) for view in products]
+
+
 @router.post(
     "/{sku}/entries",
     response_model=ProductStockResponse,
@@ -34,7 +53,7 @@ HOLD_LOCATION = "/api/v1/holds/{hold_id}"
     responses={**INVALID, **CONFLICT},
 )
 def register_entry(
-    sku: str, body: QuantityRequest, uow: UowDep, clock: ClockDep
+    sku: SkuPath, body: QuantityRequest, uow: UowDep, clock: ClockDep
 ) -> ProductStockResponse:
     view = RegisterEntry(uow, clock).execute(StockQuantityCommand(sku, body.quantity))
     return ProductStockResponse.model_validate(view)
@@ -48,7 +67,7 @@ def register_entry(
     responses={**NOT_FOUND, **CONFLICT, **INVALID},
 )
 def register_exit(
-    sku: str, body: QuantityRequest, uow: UowDep, clock: ClockDep
+    sku: SkuPath, body: QuantityRequest, uow: UowDep, clock: ClockDep
 ) -> ProductStockResponse:
     view = RegisterExit(uow, clock).execute(StockQuantityCommand(sku, body.quantity))
     return ProductStockResponse.model_validate(view)
@@ -63,7 +82,7 @@ def register_exit(
     responses={**NOT_FOUND, **CONFLICT, **INVALID},
 )
 def reserve(
-    sku: str, body: ReservationRequest, uow: UowDep, clock: ClockDep, response: Response
+    sku: SkuPath, body: ReservationRequest, uow: UowDep, clock: ClockDep, response: Response
 ) -> HoldResponse:
     view = ReserveStock(uow, clock).execute(ReserveStockCommand(sku, body.quantity, body.reference))
     response.headers["Location"] = HOLD_LOCATION.format(hold_id=view.id)
@@ -79,7 +98,7 @@ def reserve(
     responses={**NOT_FOUND, **CONFLICT, **INVALID},
 )
 def block(
-    sku: str, body: BlockRequest, uow: UowDep, clock: ClockDep, response: Response
+    sku: SkuPath, body: BlockRequest, uow: UowDep, clock: ClockDep, response: Response
 ) -> HoldResponse:
     view = BlockStock(uow, clock).execute(
         BlockStockCommand(sku, body.quantity, body.reference, body.reason)
@@ -95,7 +114,7 @@ def block(
     description="Total, disponível, reservado, bloqueado e os holds ativos.",
     responses={**NOT_FOUND, **INVALID},
 )
-def get_product(sku: str, uow: UowDep) -> ProductDetailsResponse:
+def get_product(sku: SkuPath, uow: UowDep) -> ProductDetailsResponse:
     details = GetProductStock(uow).execute(sku)
     return ProductDetailsResponse(
         **ProductStockResponse.model_validate(details.stock).model_dump(),
@@ -107,13 +126,14 @@ def get_product(sku: str, uow: UowDep) -> ProductDetailsResponse:
     "/{sku}/movements",
     response_model=list[MovementResponse],
     summary="Histórico de movimentações (auditoria)",
+    description="Ledger append-only do produto, da movimentação mais antiga para a mais recente.",
     responses={**NOT_FOUND, **INVALID},
 )
 def list_movements(
-    sku: str,
+    sku: SkuPath,
     uow: UowDep,
-    limit: int = Query(50, ge=1, le=500),
-    offset: int = Query(0, ge=0),
+    limit: Limit = DEFAULT_PAGE_SIZE,
+    offset: Offset = 0,
 ) -> list[MovementResponse]:
     movements = ListMovements(uow).execute(sku, limit=limit, offset=offset)
     return [MovementResponse.model_validate(m) for m in movements]

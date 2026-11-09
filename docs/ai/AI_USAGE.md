@@ -21,7 +21,7 @@ executa e mostra a evidência; eu decido, reviso e corrijo a direção.
 | 7. Documentação | Rascunho de README/ADRs | Números conferidos com a saída real dos comandos |
 
 **Guardrails automáticos**, que valem igualmente para código humano e de IA:
-`ruff` · `mypy --strict` · `import-linter` (arquitetura) · 101 testes · cobertura ≥ 90% no CI.
+`ruff` · `mypy --strict` · `import-linter` (arquitetura) · 109 testes · cobertura ≥ 90% no CI.
 
 ---
 
