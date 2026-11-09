@@ -18,6 +18,7 @@ from stock.application.use_cases import (
     ListHolds,
     ListHoldsQuery,
     ListMovements,
+    ListProducts,
     RegisterEntry,
     RegisterExit,
     ReleaseHold,
@@ -211,3 +212,29 @@ class TestQueries:
     def test_movements_of_unknown_product_fails(self, uow: InMemoryUnitOfWork) -> None:
         with pytest.raises(ProductNotFoundError):
             ListMovements(uow).execute("NOPE")
+
+
+class TestListProducts:
+    def test_lists_every_product_ordered_by_sku_with_current_balances(
+        self, uow: InMemoryUnitOfWork
+    ) -> None:
+        seed(uow, "B", 5)
+        seed(uow, "A", 10)
+        ReserveStock(uow, fixed_clock).execute(ReserveStockCommand("A", 3, "PED-1"))
+        BlockStock(uow, fixed_clock).execute(BlockStockCommand("A", 2, "QA-1"))
+
+        products = ListProducts(uow).execute()
+
+        assert [p.sku for p in products] == ["A", "B"]
+        a = products[0]
+        assert (a.total, a.available, a.reserved, a.blocked) == (10, 5, 3, 2)
+
+    def test_paginates_with_limit_and_offset(self, uow: InMemoryUnitOfWork) -> None:
+        for sku in ("C", "A", "B"):
+            seed(uow, sku)
+
+        assert [p.sku for p in ListProducts(uow).execute(limit=2)] == ["A", "B"]
+        assert [p.sku for p in ListProducts(uow).execute(limit=2, offset=2)] == ["C"]
+
+    def test_empty_stock_returns_empty_list(self, uow: InMemoryUnitOfWork) -> None:
+        assert ListProducts(uow).execute() == []

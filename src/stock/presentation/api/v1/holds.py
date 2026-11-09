@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Query
 
 from stock.application.use_cases import (
@@ -10,6 +8,7 @@ from stock.application.use_cases import (
     ReleaseHold,
 )
 from stock.domain.entities import HoldStatus, HoldType
+from stock.presentation.api.v1._params import DEFAULT_PAGE_SIZE, HoldIdPath, Limit, Offset
 from stock.presentation.api.v1._responses import CONFLICT, INVALID, NOT_FOUND
 from stock.presentation.dependencies import ClockDep, UowDep
 from stock.presentation.schemas import HoldResponse
@@ -21,17 +20,22 @@ router = APIRouter(prefix="/holds", tags=["Reservas e bloqueios"])
     "",
     response_model=list[HoldResponse],
     summary="Listar reservas/bloqueios",
-    description="Filtra por produto, solicitação (reference), tipo e status.",
+    description=(
+        "Filtra por produto, solicitação (reference), tipo e status. "
+        "Sem filtros, lista todos em ordem de criação."
+    ),
     responses={**INVALID},
 )
 def list_holds(
     uow: UowDep,
-    sku: str | None = None,
-    reference: str | None = None,
-    type: HoldType | None = Query(None),
-    status: HoldStatus | None = Query(None),
-    limit: int = Query(50, ge=1, le=500),
-    offset: int = Query(0, ge=0),
+    sku: str | None = Query(None, description="SKU do produto", examples=["NOTE-15"]),
+    reference: str | None = Query(
+        None, description="Solicitação/pedido de origem", examples=["PED-2026-0001"]
+    ),
+    type: HoldType | None = Query(None, description="RESERVATION (reserva) ou BLOCK (bloqueio)"),
+    status: HoldStatus | None = Query(None, description="ACTIVE, RELEASED ou CONSUMED"),
+    limit: Limit = DEFAULT_PAGE_SIZE,
+    offset: Offset = 0,
 ) -> list[HoldResponse]:
     query = ListHoldsQuery(
         sku=sku,
@@ -50,7 +54,7 @@ def list_holds(
     summary="Consultar reserva/bloqueio",
     responses={**NOT_FOUND, **INVALID},
 )
-def get_hold(hold_id: UUID, uow: UowDep) -> HoldResponse:
+def get_hold(hold_id: HoldIdPath, uow: UowDep) -> HoldResponse:
     return HoldResponse.model_validate(GetHold(uow).execute(hold_id))
 
 
@@ -61,7 +65,7 @@ def get_hold(hold_id: UUID, uow: UowDep) -> HoldResponse:
     description="Devolve as unidades ao disponível. Um hold só pode ser liberado uma vez.",
     responses={**NOT_FOUND, **CONFLICT, **INVALID},
 )
-def release_hold(hold_id: UUID, uow: UowDep, clock: ClockDep) -> HoldResponse:
+def release_hold(hold_id: HoldIdPath, uow: UowDep, clock: ClockDep) -> HoldResponse:
     return HoldResponse.model_validate(ReleaseHold(uow, clock).execute(hold_id))
 
 
@@ -72,5 +76,5 @@ def release_hold(hold_id: UUID, uow: UowDep, clock: ClockDep) -> HoldResponse:
     description="Extra ao enunciado: as unidades reservadas saem do estoque (pedido expedido).",
     responses={**NOT_FOUND, **CONFLICT, **INVALID},
 )
-def consume_reservation(hold_id: UUID, uow: UowDep, clock: ClockDep) -> HoldResponse:
+def consume_reservation(hold_id: HoldIdPath, uow: UowDep, clock: ClockDep) -> HoldResponse:
     return HoldResponse.model_validate(ConsumeReservation(uow, clock).execute(hold_id))

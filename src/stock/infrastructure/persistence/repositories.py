@@ -66,6 +66,10 @@ class SqlAlchemyProductRepository:
         model.blocked_quantity = product.blocked
         self._session.flush()
 
+    def list(self, *, limit: int, offset: int) -> Sequence[Product]:
+        stmt = select(ProductModel).order_by(ProductModel.sku).limit(limit).offset(offset)
+        return [product_to_entity(model) for model in self._session.scalars(stmt)]
+
 
 class SqlAlchemyHoldRepository:
     def __init__(self, session: Session) -> None:

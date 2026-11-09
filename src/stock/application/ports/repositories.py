@@ -28,6 +28,10 @@ class ProductRepository(Protocol):
 
     def save(self, product: Product) -> None: ...
 
+    def list(self, *, limit: int, offset: int) -> Sequence[Product]:
+        """Produtos cadastrados em ordem de SKU (paginação estável)."""
+        ...
+
 
 @dataclass(frozen=True, slots=True)
 class HoldFilters:

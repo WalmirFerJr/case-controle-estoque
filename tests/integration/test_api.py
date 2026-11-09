@@ -112,6 +112,26 @@ class TestHappyPath:
         assert sorted(h["sku"] for h in by_order) == ["A", "B"]
         assert len(active_of_a) == 2
 
+    def test_list_products_shows_every_product_with_balances(self, client: TestClient) -> None:
+        assert client.get(f"{API}/products").json() == []
+        entry(client, "NOTE-15", 10)
+        entry(client, "MOUSE-1", 4)
+        reserve(client, "NOTE-15", 3)
+
+        products = client.get(f"{API}/products").json()
+
+        assert products == [
+            {"sku": "MOUSE-1", "total": 4, "available": 4, "reserved": 0, "blocked": 0},
+            {"sku": "NOTE-15", "total": 10, "available": 7, "reserved": 3, "blocked": 0},
+        ]
+        second_page = client.get(f"{API}/products", params={"limit": 1, "offset": 1}).json()
+        assert [p["sku"] for p in second_page] == ["NOTE-15"]
+
+    def test_root_redirects_to_interactive_docs(self, client: TestClient) -> None:
+        response = client.get("/", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == "/docs"
+
     def test_health_reports_database_ok(self, client: TestClient) -> None:
         assert client.get("/health").json() == {"status": "ok", "database": "ok"}
 
@@ -168,6 +188,13 @@ class TestErrorContract:
         response = client.post(f"{API}/products/A/entries", json=payload)
         assert response.status_code == 422
         assert response.json()["code"] == "VALIDATION_ERROR"
+
+    @pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 501}, {"offset": -1}])
+    def test_invalid_pagination_returns_422(
+        self, client: TestClient, params: dict[str, int]
+    ) -> None:
+        response = client.get(f"{API}/products", params=params)
+        assert (response.status_code, response.json()["code"]) == (422, "VALIDATION_ERROR")
 
     def test_invalid_sku_in_path_returns_422(self, client: TestClient) -> None:
         response = client.post(f"{API}/products/bad%20sku/entries", json={"quantity": 1})
