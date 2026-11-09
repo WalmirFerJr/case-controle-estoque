@@ -170,3 +170,30 @@ publicar.
 - A autenticação para o push foi feita por mim: a IA não tem acesso a credenciais.
 
 **Decisão:** ✅ Este registro foi publicado depois, em um commit próprio, após a minha revisão.
+
+---
+
+## Fase 4: Evolução
+
+### P11. Usabilidade da API: listagem de produtos e documentação do Swagger
+**Prompt:**
+> Usando a API pelo Swagger como um consumidor faria, senti falta de uma visão geral do estoque.
+> Crie um `GET` que liste a situação de todos os produtos cadastrados, com os quatro saldos.
+> Depois revise a documentação da API procurando o que dificulta o uso: parâmetros sem
+> descrição, falta de exemplos, ponto de entrada pouco claro.
+> Mantenha README, ADRs e testes coerentes com cada mudança.
+
+**Resposta da IA (resumo):**
+- Criou `GET /api/v1/products` com um caso de uso novo (`ListProducts`) e um método novo no port
+  do repositório. É um único SELECT, paginado (`limit` ≤ 500) e em ordem de SKU.
+- No Swagger, encontrou parâmetros de rota e de consulta sem descrição nem exemplo, campos de
+  resposta sem significado e a raiz `/` respondendo 404. Para resolver:
+  - parâmetros documentados uma única vez (`_params.py`);
+  - enums visíveis nos campos `type` e `status`;
+  - roteiro de "Primeiros passos" na página do Swagger;
+  - redirecionamento da raiz `/` para `/docs`.
+- Acrescentou 8 testes: casos de uso, integração e validação da paginação.
+
+**Decisão:** ✅ Validei rodando a API com Docker e percorrendo o fluxo pelo Swagger e por `curl`.
+✏️ A listagem não traz os holds de cada produto, para evitar consultas N+1. O detalhe continua em
+`GET /products/{sku}`.

@@ -48,6 +48,7 @@ Para cada produto (identificado por **SKU**) a API mantém:
 | 4 | Bloquear | `POST /api/v1/products/{sku}/blocks` | Só até o disponível; gera `id`; `reason` opcional |
 | 5 | Liberar | `POST /api/v1/holds/{id}/release` | Hold ativo volta ao disponível; liberar 2x → 409 |
 | 6 | Consultar | `GET /api/v1/products/{sku}` | Total, disponível, reservado, bloqueado + holds ativos |
+| – | Listar produtos | `GET /api/v1/products?limit=&offset=` | Saldos de todos os produtos cadastrados, em ordem de SKU |
 | – | Consultar reserva/bloqueio | `GET /api/v1/holds/{id}` | Pela identificação |
 | – | Listar por solicitação | `GET /api/v1/holds?reference=&sku=&type=&status=` | Vários holds por produto e por pedido |
 | ➕ | Consumir reserva | `POST /api/v1/holds/{id}/consume` | Extra: pedido expedido; reservado sai do estoque ([por quê](docs/adr/0004-modelo-de-dados.md#6-extra-consumir-reserva-post-holdsidconsume)) |
@@ -199,6 +200,7 @@ Ambiguidades do enunciado e como foram resolvidas:
 | Liberar o que já foi liberado/consumido | **409 `HOLD_NOT_ACTIVE`** (explícito, não silencioso) |
 | Quantidades | Inteiras, `1 ≤ q ≤ 1.000.000` por operação; total por produto ≤ 1.000.000.000 |
 | Consulta "ao menos" os 4 saldos | Retorna os 4 saldos + a lista de holds ativos |
+| Visão de todos os produtos | `GET /products` lista os 4 saldos de cada produto, paginado (`limit` ≤ 500) e em ordem de SKU; os holds ficam na consulta individual |
 
 ---
 
@@ -225,7 +227,7 @@ Ambiguidades do enunciado e como foram resolvidas:
 ```bash
 docker compose up --build -d
 ```
-- Swagger: <http://localhost:8000/docs> · OpenAPI: <http://localhost:8000/openapi.json>
+- Swagger: <http://localhost:8000/docs> (a raiz `http://localhost:8000` redireciona para lá) · OpenAPI: <http://localhost:8000/openapi.json>
 - As migrations são aplicadas automaticamente na subida do container.
 - Para derrubar: `docker compose down -v`
 
@@ -245,6 +247,20 @@ make check            # o mesmo que o CI: ruff + format + mypy strict + import-l
 ```
 Sem `make`: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/pytest`
 
+### Testando pelo Swagger (passo a passo)
+Abra <http://localhost:8000/docs>. Em cada endpoint, clique em **Try it out**, preencha os campos
+(todos têm descrição e exemplo) e clique em **Execute**.
+
+1. **`POST /products/{sku}/entries`** com `sku = NOTE-15` e corpo `{"quantity": 10}`: cria o produto.
+2. **`GET /products`**: lista todos os produtos com total, disponível, reservado e bloqueado.
+3. **`POST /products/{sku}/reservations`** com `{"quantity": 3, "reference": "PED-1"}`: copie o `id` da resposta.
+4. **`GET /products/{sku}`**: saldos do produto e reservas/bloqueios ativos.
+5. **`POST /products/{sku}/exits`** com `{"quantity": 8}`: **409**, pois só há 7 disponíveis.
+6. **`POST /holds/{hold_id}/release`** com o `id` do passo 3: as 3 unidades voltam ao disponível.
+7. **`GET /products/{sku}/movements`**: histórico de tudo o que aconteceu.
+
+Para recomeçar com o banco vazio: `docker compose down -v && docker compose up -d`.
+
 ### Exemplo de uso (curl)
 ```bash
 API=http://localhost:8000/api/v1
@@ -261,6 +277,9 @@ curl -s -X POST $API/products/NOTE-15/blocks -H 'Content-Type: application/json'
 
 curl -s $API/products/NOTE-15
 # {"sku":"NOTE-15","total":10,"available":5,"reserved":3,"blocked":2,"active_holds":[...]}
+
+curl -s "$API/products?limit=50&offset=0"
+# [{"sku":"NOTE-15","total":10,"available":5,"reserved":3,"blocked":2}]
 
 curl -s -X POST $API/products/NOTE-15/exits -H 'Content-Type: application/json' -d '{"quantity": 6}'
 # 409 application/problem+json
@@ -322,14 +341,14 @@ Todas as falhas seguem **Problem Details** (`application/problem+json`) com `cod
 
 ## Testes
 
-**101 testes · cobertura 98%** (mínimo de 90% exigido no CI). Estratégia completa no [ADR-0009](docs/adr/0009-estrategia-de-testes.md).
+**109 testes · cobertura 98%** (mínimo de 90% exigido no CI). Estratégia completa no [ADR-0009](docs/adr/0009-estrategia-de-testes.md).
 
 | Nível | Qtde | O que prova |
 |---|---|---|
 | Domínio | 48 | Cada regra e borda; estado intacto após qualquer operação rejeitada |
-| Casos de uso | 20 | Orquestração: saldo, hold e ledger persistidos juntos; nada persiste em erro |
+| Casos de uso | 23 | Orquestração: saldo, hold e ledger persistidos juntos; nada persiste em erro |
 | Property-based | 1 (200 sequências × até 40 passos) | Invariantes e replay do ledger valem para **qualquer** sequência de operações |
-| Integração | 27 | Contrato HTTP, Problem Details, CHECK constraints, migrations ↔ models, banco fora → 503, lock timeout → 503 |
+| Integração | 32 | Contrato HTTP, listagem e paginação, Problem Details, CHECK constraints, migrations ↔ models, banco fora → 503, lock timeout → 503 |
 | Concorrência | 5 | Sem overselling, sem liberação dupla, sem atualização perdida (até 60 transações simultâneas) |
 
 > **Os testes de concorrência foram validados com o lock desligado:** sem `FOR UPDATE`, falham 5/5
