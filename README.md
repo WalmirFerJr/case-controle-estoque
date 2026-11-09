@@ -345,6 +345,7 @@ eu decidi o escopo e as estratégias, rejeitei duas versões do plano e validei 
 guardrails automáticos.
 
 - [`docs/ai/AI_USAGE.md`](docs/ai/AI_USAGE.md): forma de uso, **onde ajudou, o que rejeitei, erros encontrados** e como uma IA com harness pode auxiliar o processo de engenharia
+- [`docs/ai/PROMPTS.md`](docs/ai/PROMPTS.md): principais prompts e o que fiz com cada resposta
 - Commits feitos com IA levam o trailer `Co-Authored-By`
 
 ---

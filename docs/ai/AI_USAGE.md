@@ -1,6 +1,6 @@
 # Uso de Inteligência Artificial
 
-> Contexto persistente dado à IA: [`CLAUDE.md`](../../CLAUDE.md)
+> Principais prompts: [PROMPTS.md](PROMPTS.md) · Contexto persistente dado à IA: [`CLAUDE.md`](../../CLAUDE.md)
 
 ## Ferramenta e forma de uso
 Usei o **Claude Code**, um agente de código que roda no terminal/desktop, lê e edita arquivos e
