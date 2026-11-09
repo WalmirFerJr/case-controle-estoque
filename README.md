@@ -28,6 +28,11 @@ open http://localhost:8000/docs   # Swagger: exercite todas as operações
 
 Para cada produto (identificado por **SKU**) a API mantém:
 
+> **SKU** (*Stock Keeping Unit*) é o código que identifica um item no estoque, por exemplo
+> `NOTE-15` ou `CAMISA-AZUL-M`. Não é o nome do produto: variações como cor e tamanho têm SKUs
+> diferentes porque têm estoques separados. Nome e descrição pertencem a um catálogo, fora do
+> escopo do case (ver [premissas](#4-premissas-consideradas)).
+
 | Saldo | Significado |
 |---|---|
 | `total` | Unidades fisicamente em estoque |

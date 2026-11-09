@@ -22,6 +22,8 @@ from stock.presentation.observability import configure_logging, register_request
 API_DESCRIPTION = """
 Controle de estoque com **reservas** e **bloqueios**.
 
+- Cada produto é identificado pelo **SKU** (*Stock Keeping Unit*): o código do item no estoque,
+  como `NOTE-15`. Não é o nome do produto.
 - `disponível = total - reservado - bloqueado`
 - Toda operação é atômica e serializada por produto (lock de linha no PostgreSQL).
 - Erros seguem Problem Details (`application/problem+json`) com `code` estável.
