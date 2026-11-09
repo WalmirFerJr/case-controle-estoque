@@ -146,11 +146,11 @@ sequenceDiagram
     participant B as Requisição B
     participant DB as PostgreSQL
     Note over DB: SKU-1: total=1, available=1
-    A->>DB: BEGIN; SELECT … FOR UPDATE (SKU-1)
-    B->>DB: BEGIN; SELECT … FOR UPDATE (SKU-1)
+    A->>DB: BEGIN, SELECT … FOR UPDATE (SKU-1)
+    B->>DB: BEGIN, SELECT … FOR UPDATE (SKU-1)
     Note over B,DB: B espera o lock de A
     A->>A: Product.reserve(1) ✔
-    A->>DB: UPDATE products; INSERT hold; INSERT movement; COMMIT
+    A->>DB: UPDATE products, INSERT hold, INSERT movement, COMMIT
     DB-->>B: lock liberado, lê available=0
     B->>B: Product.reserve(1) ✖ InsufficientAvailableStock
     B->>DB: ROLLBACK
